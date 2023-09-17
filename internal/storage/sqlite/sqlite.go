@@ -20,4 +20,6 @@ func New(storagePath string) (*Storage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s : %w", op, err)
 	}
+	fmt.Println(stmt)
+	return &Storage{db: db}, nil
 }
