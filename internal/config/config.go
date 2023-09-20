@@ -20,11 +20,7 @@ type HTTPServer struct {
 }
 
 type Database struct {
-	Host     string `yaml:"host" env-default:"localhost"`
-	Port     string `yaml:"port" env-default:"5432"`
-	Username string `yaml:"username" env-default:"admin"`
-	DBName   string `yaml:"dbname" env-default:"postgres"`
-	SSLMode  string `yaml:"sslmode" env-default:"disable"`
+	StoragePath string `yaml:"storage_path"`
 }
 
 func MustLoad() *Config {
