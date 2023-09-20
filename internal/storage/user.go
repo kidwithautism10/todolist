@@ -5,7 +5,7 @@ import validation "github.com/go-ozzo/ozzo-validation"
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"-"`
 }
 
 func (u *User) Validate() error {

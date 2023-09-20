@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
+	"todolist/internal/storage"
 )
 
 type Storage struct {
@@ -16,7 +17,7 @@ func New(db *sql.DB) *Storage {
 	}
 }
 
-func (s *Storage) User() *UserRepository {
+func (s *Storage) User() storage.UserRepository {
 	if s.userRepository != nil {
 		return s.userRepository
 	}
