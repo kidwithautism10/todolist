@@ -1,12 +1,15 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"net/http"
+	"strconv"
+	"time"
 	"todolist/internal/storage"
 )
 
@@ -16,12 +19,17 @@ type server struct {
 	sessionStore sessions.Store
 }
 
-const SessionName = "session0"
+const (
+	SessionName        = "session0"
+	ctxKeyUser  ctxKey = iota
+)
 
 var (
 	errIncorrectUsernameOrPassword = errors.New("incorrect email or password")
 	errNotAuthenticated            = errors.New("not authenticated")
 )
+
+type ctxKey int8
 
 func newServer(store storage.Store, sessionStore sessions.Store) *server {
 	s := &server{
@@ -45,6 +53,63 @@ func (s *server) configureRouter() {
 
 	s.router.MethodFunc("POST", "/user/create", s.handleUsersCreate())
 	s.router.MethodFunc("POST", "/sessions", s.handleSessionsCreate())
+
+	s.router.Mount("/todo", s.loggedRouter())
+}
+
+func (s *server) loggedRouter() chi.Router {
+	r := chi.NewRouter()
+	r.Use(s.authenticateUser)
+	r.MethodFunc("POST", "/create", s.handleTodoCreate())
+	return r
+}
+
+func (s *server) handleTodoCreate() http.HandlerFunc {
+	type request struct {
+		Text string `json:"text"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		fmt.Println(req.Text)
+		date := strconv.Itoa(time.Now().Day()) + "." + strconv.Itoa(int(time.Now().Month())) + "." + strconv.Itoa(time.Now().Year())
+
+		u, err := s.store.User().Find(r.Context().Value(ctxKeyUser).(*storage.User).ID)
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+
+		if err := s.store.Task().CreateTask(req.Text, date, u.Username); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (s *server) authenticateUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := s.sessionStore.Get(r, SessionName)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		id, ok := session.Values["user_id"]
+		if !ok {
+			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
+			return
+		}
+
+		u, err := s.store.User().Find(id.(int))
+		if err != nil {
+			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, u)))
+	})
 }
 
 func (s *server) handleUsersCreate() http.HandlerFunc {

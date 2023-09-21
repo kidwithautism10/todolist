@@ -9,6 +9,7 @@ import (
 type Storage struct {
 	db             *sql.DB
 	userRepository *UserRepository
+	taskRepository *TaskRepository
 }
 
 func New(db *sql.DB) *Storage {
@@ -25,4 +26,14 @@ func (s *Storage) User() storage.UserRepository {
 	s.userRepository = &UserRepository{s}
 
 	return s.userRepository
+}
+
+func (s *Storage) Task() storage.TaskRepository {
+	if s.taskRepository != nil {
+		return s.taskRepository
+	}
+
+	s.taskRepository = &TaskRepository{s}
+
+	return s.taskRepository
 }

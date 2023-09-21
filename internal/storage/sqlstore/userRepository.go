@@ -22,6 +22,15 @@ func (r *UserRepository) Create(u *storage.User) error {
 	return r.storage.db.QueryRow("SELECT last_insert_rowid()").Scan(&u.ID)
 }
 
+func (r *UserRepository) Find(id int) (*storage.User, error) {
+	u := &storage.User{}
+	if err := r.storage.db.QueryRow("SELECT id, username, encrypted_password from users WHERE id = ?", id).Scan(&u.ID, &u.Username, &u.EncryptedPassword); err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
+
 func (r *UserRepository) FindByUsername(username string) (*storage.User, error) {
 	u := &storage.User{}
 	if err := r.storage.db.QueryRow("SELECT id, username, encrypted_password from users WHERE username = ?", username).Scan(&u.ID, &u.Username, &u.EncryptedPassword); err != nil {
