@@ -18,7 +18,7 @@ func (r *UserRepository) Create(u *storage.User) error {
 		return err
 	}
 
-	r.storage.db.Exec("INSERT INTO users (username, password) VALUES (?, ?)", u.Username, u.EncryptedPassword)
+	r.storage.db.Exec("INSERT INTO users (username, encrypted_password) VALUES (?, ?)", u.Username, u.EncryptedPassword)
 	return r.storage.db.QueryRow("SELECT last_insert_rowid()").Scan(&u.ID)
 }
 
