@@ -53,7 +53,6 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 		Password string `json:"password"`
 	}
 
-	const op = "handlers/usersCreate"
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -92,7 +91,7 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 		}
 
 		u, err := s.store.User().FindByUsername(req.Username)
-		if err != nil || req.Password != u.Password {
+		if err != nil || !u.ComparePassword(req.Password) {
 			s.error(w, r, http.StatusUnauthorized, errIncorrectUsernameOrPassword)
 			return
 		}

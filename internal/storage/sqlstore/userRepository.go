@@ -14,13 +14,17 @@ func (r *UserRepository) Create(u *storage.User) error {
 		return err
 	}
 
-	r.storage.db.Exec("INSERT INTO users (username, password) VALUES (?, ?)", u.Username, u.Password)
+	if err := u.BeforeCreate(); err != nil {
+		return err
+	}
+
+	r.storage.db.Exec("INSERT INTO users (username, password) VALUES (?, ?)", u.Username, u.EncryptedPassword)
 	return r.storage.db.QueryRow("SELECT last_insert_rowid()").Scan(&u.ID)
 }
 
 func (r *UserRepository) FindByUsername(username string) (*storage.User, error) {
 	u := &storage.User{}
-	if err := r.storage.db.QueryRow("SELECT id, username, password from users WHERE username = ?", username).Scan(&u.ID, &u.Username, &u.Password); err != nil {
+	if err := r.storage.db.QueryRow("SELECT id, username, encrypted_password from users WHERE username = ?", username).Scan(&u.ID, &u.Username, &u.EncryptedPassword); err != nil {
 		return nil, err
 	}
 
