@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
+	"html/template"
 	"net/http"
 	"strconv"
 	"time"
@@ -53,6 +54,7 @@ func (s *server) configureRouter() {
 
 	s.router.MethodFunc("POST", "/user/create", s.handleUsersCreate())
 	s.router.MethodFunc("POST", "/sessions", s.handleSessionsCreate())
+	s.router.Handle("/", s.handleIndex())
 
 	s.router.Mount("/todo", s.loggedRouter())
 }
@@ -63,7 +65,34 @@ func (s *server) loggedRouter() chi.Router {
 	r.MethodFunc("POST", "/create", s.handleTodoCreate())
 	r.MethodFunc("POST", "/update", s.handleCompleteTask())
 	r.MethodFunc("POST", "/delete", s.handleDeleteTask())
+	r.MethodFunc("GET", "/", s.handleRenderTask())
 	return r
+}
+
+func (s *server) handleIndex() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		templateParser, err := template.ParseFiles("views/index.html")
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+		}
+
+		templateParser.ExecuteTemplate(w, "index", nil)
+	}
+}
+
+func (s *server) handleRenderTask() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, err := s.store.User().Find(r.Context().Value(ctxKeyUser).(*storage.User).ID)
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+
+		t, err := s.store.Task().RenderTask(u.Username)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+		fmt.Println(t)
+	}
 }
 
 func (s *server) handleDeleteTask() http.HandlerFunc {

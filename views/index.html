@@ -1,0 +1,26 @@
+{{ define "index" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Auth</title>
+</head>
+<script>
+    function sendJSON(){
+        let xhr = new XMLHttpRequest();
+        url = "http://" + location.host + "/user/create";
+        xhr.open("POST", url, true);
+
+        var data = JSON.stringify({ "username":
+            username.value, "password": password.value });
+        xhr.send(data);
+        console.log(url);
+    }
+</script>
+<body>
+    <input type="text" id="username">
+    <input type="text" id="password">
+    <button onclick="sendJSON()">Register</button>
+</body>
+</html>
+{{ end }}

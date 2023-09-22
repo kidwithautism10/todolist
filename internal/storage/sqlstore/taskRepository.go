@@ -1,5 +1,9 @@
 package sqlstore
 
+import (
+	"todolist/internal/storage"
+)
+
 type TaskRepository struct {
 	storage *Storage
 }
@@ -39,4 +43,22 @@ func (r *TaskRepository) DeleteTask(id int) error {
 		return err
 	}
 	return nil
+}
+
+func (r *TaskRepository) RenderTask(username string) ([]storage.Task, error) {
+	t := storage.Task{}
+	ts := []storage.Task{}
+	rows, err := r.storage.db.Query("SELECT * from tasks WHERE user = ?", username)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		err := rows.Scan(&t.ID, &t.Text, &t.Complete, &t.Date, &t.Username)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, t)
+	}
+
+	return ts, nil
 }
