@@ -8,4 +8,6 @@ type UserRepository interface {
 
 type TaskRepository interface {
 	CreateTask(string, string, string) error
+	CompleteTask(int) error
+	DeleteTask(int) error
 }

@@ -61,7 +61,49 @@ func (s *server) loggedRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(s.authenticateUser)
 	r.MethodFunc("POST", "/create", s.handleTodoCreate())
+	r.MethodFunc("POST", "/update", s.handleCompleteTask())
+	r.MethodFunc("POST", "/delete", s.handleDeleteTask())
 	return r
+}
+
+func (s *server) handleDeleteTask() http.HandlerFunc {
+	type request struct {
+		Id string `json:"id"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		id, _ := strconv.Atoi(req.Id)
+
+		if err := s.store.Task().DeleteTask(id); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+}
+
+func (s *server) handleCompleteTask() http.HandlerFunc {
+	type request struct {
+		Id string `json:"id"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		id, _ := strconv.Atoi(req.Id)
+
+		if err := s.store.Task().CompleteTask(id); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
 }
 
 func (s *server) handleTodoCreate() http.HandlerFunc {
