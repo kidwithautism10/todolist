@@ -64,7 +64,7 @@ func (s *server) loggedRouter() chi.Router {
 	r.Use(s.authenticateUser)
 	r.MethodFunc("POST", "/create", s.handleTodoCreate())
 	r.MethodFunc("POST", "/update", s.handleCompleteTask())
-	r.MethodFunc("POST", "/delete", s.handleDeleteTask())
+	r.MethodFunc("DELETE", "/delete", s.handleDeleteTask())
 	r.MethodFunc("GET", "/", s.handleRenderTask())
 	return r
 }
@@ -82,6 +82,10 @@ func (s *server) handleIndex() http.HandlerFunc {
 
 func (s *server) handleRenderTask() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		templateParser, err := template.ParseFiles("views/main.html")
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+		}
 		u, err := s.store.User().Find(r.Context().Value(ctxKeyUser).(*storage.User).ID)
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -91,7 +95,7 @@ func (s *server) handleRenderTask() http.HandlerFunc {
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
-		fmt.Println(t)
+		templateParser.ExecuteTemplate(w, "main", t)
 	}
 }
 
@@ -145,15 +149,19 @@ func (s *server) handleTodoCreate() http.HandlerFunc {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
-		fmt.Println(req.Text)
+
 		date := strconv.Itoa(time.Now().Day()) + "." + strconv.Itoa(int(time.Now().Month())) + "." + strconv.Itoa(time.Now().Year())
 
 		u, err := s.store.User().Find(r.Context().Value(ctxKeyUser).(*storage.User).ID)
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 		}
-
-		if err := s.store.Task().CreateTask(req.Text, date, u.Username); err != nil {
+		t := &storage.Task{
+			Text:     req.Text,
+			Date:     date,
+			Username: u.Username,
+		}
+		if err := s.store.Task().CreateTask(t); err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
 	}
@@ -201,9 +209,18 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 			Password: req.Password,
 		}
 		fmt.Println(u.Username, u.Password)
-		if err := s.store.User().Create(u); err != nil {
-			s.error(w, r, http.StatusUnprocessableEntity, err)
-			return
+
+		userCreated, err := s.store.User().FindByUsername(u.Username)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+		if userCreated == nil {
+			if err := s.store.User().Create(u); err != nil {
+				s.error(w, r, http.StatusUnprocessableEntity, err)
+				return
+			}
+		} else {
+			s.error(w, r, http.StatusBadRequest, errors.New("Username already taken!"))
 		}
 
 		fmt.Println(u.ID)

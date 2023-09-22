@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Auth</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 </head>
 <script>
-    function sendJSON(){
+    function sendRegJSON(){
         let xhr = new XMLHttpRequest();
         url = "http://" + location.host + "/user/create";
         xhr.open("POST", url, true);
@@ -16,11 +17,28 @@
         xhr.send(data);
         console.log(url);
     }
+    function sendAuthJSON(){
+        let xhr = new XMLHttpRequest();
+        url = "http://" + location.host + "/sessions";
+        xhr.open("POST", url, true);
+
+        var data = JSON.stringify({ "username":
+            username1.value, "password": password1.value });
+        xhr.send(data);
+        console.log(url);
+    }
 </script>
 <body>
+<div>
     <input type="text" id="username">
     <input type="text" id="password">
-    <button onclick="sendJSON()">Register</button>
+    <button onclick="sendRegJSON()">Register</button>
+</div>
+<div>
+    <input type="text" id="username1">
+    <input type="text" id="password1">
+    <button onclick="sendAuthJSON()">Auth</button>
+</div>
 </body>
 </html>
 {{ end }}

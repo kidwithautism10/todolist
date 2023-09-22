@@ -8,8 +8,12 @@ type TaskRepository struct {
 	storage *Storage
 }
 
-func (r *TaskRepository) CreateTask(text string, date string, user string) error {
-	_, err := r.storage.db.Exec("INSERT INTO tasks (text, complete, date, user) VALUES (?, ?, ?, ?)", text, 0, date, user)
+func (r *TaskRepository) CreateTask(t *storage.Task) error {
+	if err := t.ValidateTask(); err != nil {
+		return err
+	}
+
+	_, err := r.storage.db.Exec("INSERT INTO tasks (text, complete, date, user) VALUES (?, ?, ?, ?)", t.Text, 0, t.Date, t.Username)
 	if err != nil {
 		return err
 	}
@@ -27,8 +31,7 @@ func (r *TaskRepository) CompleteTask(id int) error {
 		if err != nil {
 			return err
 		}
-	}
-	if complete == 1 {
+	} else {
 		_, err := r.storage.db.Exec("UPDATE tasks SET complete = 0 WHERE id = ?", id)
 		if err != nil {
 			return err
@@ -57,6 +60,10 @@ func (r *TaskRepository) RenderTask(username string) ([]storage.Task, error) {
 		if err != nil {
 			return nil, err
 		}
+		ts = append(ts, t)
+	}
+	if len(ts) == 0 {
+		t.Text = "здесь пока пусто :("
 		ts = append(ts, t)
 	}
 
