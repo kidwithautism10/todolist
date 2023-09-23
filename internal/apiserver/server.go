@@ -55,6 +55,7 @@ func (s *server) configureRouter() {
 	s.router.MethodFunc("POST", "/user/create", s.handleUsersCreate())
 	s.router.MethodFunc("POST", "/sessions", s.handleSessionsCreate())
 	s.router.Handle("/", s.handleIndex())
+	s.router.Handle("/auth", s.handleAuth())
 
 	s.router.Mount("/todo", s.loggedRouter())
 }
@@ -67,6 +68,17 @@ func (s *server) loggedRouter() chi.Router {
 	r.MethodFunc("DELETE", "/delete", s.handleDeleteTask())
 	r.MethodFunc("GET", "/", s.handleRenderTask())
 	return r
+}
+
+func (s *server) handleAuth() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		templateParser, err := template.ParseFiles("views/auth.html")
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+		}
+
+		templateParser.ExecuteTemplate(w, "auth", nil)
+	}
 }
 
 func (s *server) handleIndex() http.HandlerFunc {
@@ -226,7 +238,6 @@ func (s *server) handleUsersCreate() http.HandlerFunc {
 		fmt.Println(u.ID)
 
 		s.respond(w, r, http.StatusCreated, u)
-
 	}
 }
 
@@ -261,7 +272,6 @@ func (s *server) handleSessionsCreate() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		s.respond(w, r, http.StatusOK, nil)
 	}
 }
