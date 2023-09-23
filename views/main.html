@@ -60,43 +60,45 @@
     }
 </script>
 <body>
-<div class="py-3">
-    <div class="position-absolute start-50 translate-middle-x input-group w-50">
+<div class="position-absolute start-50 top-50 translate-middle card text-center border border-2" style="background: #272636; width: 75%; height: 75%;">
+    <div class="start-50 translate-middle-x input-group w-100 card-header">
         <span class="input-group-text inpt" id="addon-wrapping">💌</span>
-        <input type="text" class="inptbody txtcolor" placeholder="task..." id="text" aria-describedby="addon-wrapping" style="width: 86%">
+        <input type="text" class="inptbody txtcolor w-75" placeholder="task..." id="text" aria-describedby="addon-wrapping">
         <button class="btn btn-outline-primary" type="button" onclick="sendTaskJSON()">add task</button>
     </div>
-    <table class="table table-dark table-striped w-50 position-absolute start-50 translate-middle-x my-5">
-        <thead>
-        <tr>
-            <th scope="col" class="w-auto">Done?</th>
-            <th scope="col" class="w-100">Text</th>
-            <th scope="col" class="w-auto">Date</th>
-            <th scope="col" class="w-auto"></th>
-        </tr>
-        </thead>
-        <tbody>
-        {{range . }}
-            {{ if eq .Text "здесь пока пусто :(" }}
-                <tr valign="middle">
-                    <th></th>
-                    <td align="center">{{ .Text }}</td>
-                    <td></td>
-                    <td></td>
-                </tr>
-            {{ else }}
-                <tr valign="middle">
-                    <th scope="row"><input {{ if eq .Complete 1 }}checked{{ end }} class="form-check-input" type="checkbox" id="complete" onclick="sendCompleteJSON({{ .ID }})"></th>
-                    <td>{{ .Text }}</td>
-                    <td>{{ .Date }}</td>
-                    <td><button class="btn btn-outline-danger" onclick="sendDeleteJSON({{.ID}})">-</button></td>
-                </tr>
-            {{ end }}
-        {{ end }}
+    <div class="card-body" style="overflow:scroll;">
+        <table class="table table-dark table-striped ">
+            <thead>
+            <tr>
+                <th scope="col" class="w-auto">Done?</th>
+                <th scope="col" class="w-100">Text</th>
+                <th scope="col" class="w-auto">Date</th>
+                <th scope="col" class="w-auto"></th>
+            </tr>
+            </thead>
+                <tbody>
+                {{range . }}
+                    {{ if eq .Text "здесь пока пусто :(" }}
+                        <tr>
+                            <th></th>
+                            <td>{{ .Text }}</td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    {{ else }}
+                        <tr valign="middle">
+                            <th scope="row"><input {{ if eq .Complete 1 }}checked{{ end }} class="form-check-input" type="checkbox" id="complete" onclick="sendCompleteJSON({{ .ID }})"></th>
+                            <td>{{ .Text }}</td>
+                            <td>{{ .Date }}</td>
+                            <td><button class="btn btn-outline-danger" onclick="sendDeleteJSON({{.ID}})">-</button></td>
+                        </tr>
+                    {{ end }}
+                {{ end }}
 
-        </tbody>
+                </tbody>
 
-    </table>
+        </table>
+    </div>
 </div>
 </body>
 </html>
