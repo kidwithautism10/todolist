@@ -72,23 +72,35 @@ func (s *server) loggedRouter() chi.Router {
 
 func (s *server) handleAuth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		templateParser, err := template.ParseFiles("views/auth.html")
+		_, err := r.Cookie("session0")
 		if err != nil {
-			s.error(w, r, http.StatusNotFound, err)
+			templateParser, err := template.ParseFiles("views/auth.html")
+			if err != nil {
+				s.error(w, r, http.StatusNotFound, err)
+			}
+
+			templateParser.ExecuteTemplate(w, "auth", nil)
+		} else {
+			http.Redirect(w, r, "/todo", http.StatusSeeOther)
 		}
 
-		templateParser.ExecuteTemplate(w, "auth", nil)
 	}
 }
 
 func (s *server) handleIndex() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		templateParser, err := template.ParseFiles("views/index.html")
+		_, err := r.Cookie("session0")
 		if err != nil {
-			s.error(w, r, http.StatusNotFound, err)
+			templateParser, err := template.ParseFiles("views/index.html")
+			if err != nil {
+				s.error(w, r, http.StatusNotFound, err)
+			}
+
+			templateParser.ExecuteTemplate(w, "index", nil)
+		} else {
+			http.Redirect(w, r, "/todo", http.StatusSeeOther)
 		}
 
-		templateParser.ExecuteTemplate(w, "index", nil)
 	}
 }
 

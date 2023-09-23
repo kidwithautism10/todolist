@@ -6,6 +6,32 @@
     <title>Auth</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 </head>
+<style>
+    body {
+        background: #022027;
+    }
+    .txtcolor{
+        color: #F8EF85;
+    }
+    .inpt{
+        background: #202027;
+    }
+    .inptbody{
+        background: #282828;
+    }
+    input[type="text"]::-webkit-input-placeholder {
+        color: #F8EF85;
+    }
+    input[type="text"]::-moz-placeholder {
+        color: #F8EF85;
+    }
+    input[type="password"]::-webkit-input-placeholder {
+        color: #F8EF85;
+    }
+    input[type="password"]::-moz-placeholder {
+        color: #F8EF85;
+    }
+</style>
 <script>
     function sendAuthJSON(){
         let xhr = new XMLHttpRequest();
@@ -15,16 +41,29 @@
         var data = JSON.stringify({ "username":
             username1.value, "password": password1.value });
         xhr.send(data);
+        setTimeout(() => {  if(xhr.status == 200){
+            location.replace("http://" + location.host + "/todo")
+        }; }, 100);
         console.log(url);
     }
 </script>
 <body>
-<div>
-    <input type="text" id="username1">
-    <input type="text" id="password1">
-    <button class="btn btn-outline-primary" onclick="sendAuthJSON()">Auth</button>
+<div class="position-absolute start-50 top-50 translate-middle card text-center border border-2" style="background: #272636; width: 45rem; border-color: #F8EF85;">
+    <div class="fs-1 txtcolor card-header">
+        <p1>Authentication</p1>
+    </div>
+    <div class="input-group card-body body-center">
+        <span class="input-group-text inpt" id="basic-addon1">👤</span>
+        <input class="inptbody txtcolor" placeholder="username..." type="text" id="username1">
+        <span class="input-group-text inpt" id="basic-addon2">🗝</span>
+        <input type="password" class="inptbody txtcolor" placeholder="password..." id="password1">
+        <button class="btn btn-outline-primary" onclick="sendAuthJSON()">Login</button>
+    </div>
+    <div class="txtcolor fs-4 card-footer">
+        <p1>Еще нет аккаунта?</p1>
+        <p1><a href="/">register</a></p1>
+    </div>
 </div>
-<p1><a href="/">register</a></p1>
 </body>
 </html>
 {{ end }}
