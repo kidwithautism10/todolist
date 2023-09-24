@@ -63,7 +63,42 @@
 <body>
 <div class="position-absolute start-50 top-50 translate-middle card text-center border border-2" style="background: #272636; width: 75%; height: 75%;">
     <div class="input-group w-50 card-header">
-        <span class="input-group-text inpt" id="addon-wrapping" onload="randomEmoji()">💌</span>
+        <span class="input-group-text inpt" id="addon-wrapping"><script>
+            let num = Math.floor(Math.random() * 10);
+            console.log(num)
+            switch (num){
+                case 0:
+                    document.writeln("💌");
+                    break
+                case 1:
+                    document.writeln("📜");
+                    break
+                case 2:
+                    document.writeln("📋");
+                    break
+                case 3:
+                    document.writeln("📖");
+                    break
+                case 4:
+                    document.writeln("🖼");
+                    break
+                case 5:
+                    document.writeln("🔮");
+                    break
+                case 6:
+                    document.writeln("📸");
+                    break
+                case 7:
+                    document.writeln("🌠");
+                    break
+                case 8:
+                    document.writeln("📡");
+                    break
+                case 9:
+                    document.writeln("🛣");
+                    break
+            }
+        </script></span>
         <input type="text" class="inptbody txtcolor w-50" placeholder="task..." id="text" aria-describedby="addon-wrapping">
         <button class="btn btn-outline-primary fs-5 fw-bold" type="button" onclick="sendTaskJSON()" style="width: 10%;">+</button>
     </div>
