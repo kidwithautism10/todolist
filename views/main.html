@@ -37,7 +37,7 @@
             text.value});
         xhr.send(data);
         text.value = ""
-        setTimeout(() => {  location.reload(); }, 100);
+        setTimeout(() => { location.reload(); }, 100);
     }
     function sendCompleteJSON(id){
         let xhr = new XMLHttpRequest();
@@ -63,7 +63,7 @@
 <body>
 <div class="position-absolute start-50 top-50 translate-middle card text-center border border-2" style="background: #272636; width: 75%; height: 75%;">
     <div class="input-group w-50 card-header">
-        <span class="input-group-text inpt" id="addon-wrapping">💌</span>
+        <span class="input-group-text inpt" id="addon-wrapping" onload="randomEmoji()">💌</span>
         <input type="text" class="inptbody txtcolor w-50" placeholder="task..." id="text" aria-describedby="addon-wrapping">
         <button class="btn btn-outline-primary fs-5 fw-bold" type="button" onclick="sendTaskJSON()" style="width: 10%;">+</button>
     </div>
@@ -92,8 +92,8 @@
                         </div>
                 {{ else }}
                         <tr valign="middle">
-                            <th scope="row"><input {{ if eq .Complete 1 }}checked{{ end }} class="form-check-input" type="checkbox" id="complete" onclick="sendCompleteJSON({{ .ID }})"></th>
-                            <td>{{ .Text }}</td>
+                            <th scope="row"><input {{ if eq .Complete 1 }} checked {{ end }} class="form-check-input" type="checkbox" id="complete" onclick="sendCompleteJSON({{ .ID }})"></th>
+                            <td {{ if eq .Complete 1 }} class="text-decoration-line-through fw-lighter" {{ end }}>{{ .Text }}</td>
                             <td>{{ .Date }}</td>
                             <td><button class="btn btn-outline-danger fw-bold" onclick="sendDeleteJSON({{.ID}})">-</button></td>
                         </tr>
