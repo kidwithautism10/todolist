@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/sessions"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,7 +69,60 @@ func (s *server) loggedRouter() chi.Router {
 	r.MethodFunc("POST", "/update", s.handleCompleteTask())
 	r.MethodFunc("DELETE", "/delete", s.handleDeleteTask())
 	r.MethodFunc("GET", "/", s.handleRenderTask())
+	r.MethodFunc("GET", "/json", s.handleJSON())
+	r.Handle("/weather", s.handleWeather())
+	r.MethodFunc("POST", "/getw", s.handleGetWeather())
 	return r
+}
+
+func (s *server) handleJSON() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		dat, _ := ioutil.ReadFile("./views/static/countries-110m.json")
+		w.Write(dat)
+	}
+}
+
+func (s *server) handleWeather() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		templateParser, err := template.ParseFiles("views/weather.html")
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+		}
+
+		templateParser.ExecuteTemplate(w, "weather", nil)
+	}
+}
+
+func (s *server) handleGetWeather() http.HandlerFunc {
+	type request struct {
+		City    string `json:"city"`
+		Country string `json:"country"`
+	}
+	type response struct {
+		Temp      string `json:"temp"`
+		Condition string `json:"condition"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		req := &request{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		url := "https://ru.meteotrend.com/forecast/" + req.Country + "/" + req.City + "/"
+		fmt.Println(url)
+		res, err := http.Get(url)
+		if err != nil {
+			return
+		}
+		defer res.Body.Close()
+		doc, err := goquery.NewDocumentFromReader(res.Body)
+		condititon, _ := doc.Find("div.box:nth-child(2) > a:nth-child(1) > div:nth-child(2) > div:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > img:nth-child(1)").Attr("alt")
+		respon := &response{
+			Temp:      doc.Find("div.box:nth-child(2) > a:nth-child(1) > div:nth-child(2) > div:nth-child(1) > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > b:nth-child(2)").Text(),
+			Condition: condititon,
+		}
+		s.respond(w, r, http.StatusOK, respon)
+	}
 }
 
 func (s *server) handleAuth() http.HandlerFunc {

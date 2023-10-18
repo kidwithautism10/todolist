@@ -1,0 +1,221 @@
+{{define "weather"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+</head>
+
+<script src="https://unpkg.com/topojson@3"></script>
+<script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+    // import {borders} from "@d3/world-tour"
+    // import {land} from "@d3/world-tour"
+    // import {world} from "@d3/world-tour"
+    d3.json("json")
+        .then(data => getCountry(data))
+
+    function getCountry(data){
+        fetch('https://ipapi.co/json/')
+            .then(d => d.json())
+            .then(d => graph(data,d));
+    }
+
+
+
+
+    async function graph(world,data) {
+        const width = 500
+        var countries = topojson.feature(world, world.objects.countries).features
+        var borders = topojson.mesh(world, world.objects.countries, (a, b) => a !== b)
+        var land = topojson.feature(world, world.objects.land)
+        // Specify the chart’s dimensions.
+        const height = Math.min(width, 720); // Observable sets a responsive *width*
+
+        // Prepare a canvas.
+        const dpr = window.devicePixelRatio ?? 1;
+        const canvas = d3.create("canvas")
+            .attr("width", dpr * width)
+            .attr("height", dpr * height)
+            .style("width", `${width}px`);
+        const context = canvas.node().getContext("2d");
+        context.scale(dpr, dpr);
+
+        // Create a projection and a path generator.
+        const projection = d3.geoOrthographic().fitExtent([[10, 10], [width - 10, height - 10]], {type: "Sphere"});
+        const path = d3.geoPath(projection, context);
+        const tilt = 20;
+
+        function render(country, arc) {
+            context.clearRect(0, 0, width, height);
+            context.beginPath(), path(land), context.fillStyle = "#ccc", context.fill();
+            context.beginPath(), path(country), context.fillStyle = "#7366BD", context.fill();
+            context.beginPath(), path(borders), context.strokeStyle = "#fff", context.lineWidth = 0.5, context.stroke();
+            context.beginPath(), path({type: "Sphere"}), context.strokeStyle = "#000", context.lineWidth = 3, context.stroke();
+            context.beginPath(), path(arc), context.stroke();
+            return context.canvas;
+        }
+
+
+        let p1, p2 = [0, 0], r1, r2 = [0, 0, 0];
+        for (const country of countries){
+            if (country.properties.name===data.country_name){
+                document.getElementById("name").innerText = data.country_name
+                container.append(render(country));
+                p1 = p2, p2 = d3.geoCentroid(country);
+                r1 = r2, r2 = [-p2[0], tilt - p2[1], 0];
+                const ip = d3.geoInterpolate(p1, p2);
+                const iv = Versor.interpolateAngles(r1, r2);
+
+                await d3.transition()
+                    .duration(1250)
+                    .tween("render", () => t => {
+                        projection.rotate(iv(t));
+                        render(country, {type: "LineString", coordinates: [p1, ip(t)]});
+                    })
+                    .transition()
+                    .tween("render", () => t => {
+                        render(country, {type: "LineString", coordinates: [ip(t), p2]});
+                    })
+                    .end();
+            }
+
+        }
+
+
+    }
+    class Versor {
+        static fromAngles([l, p, g]) {
+            l *= Math.PI / 360;
+            p *= Math.PI / 360;
+            g *= Math.PI / 360;
+            const sl = Math.sin(l), cl = Math.cos(l);
+            const sp = Math.sin(p), cp = Math.cos(p);
+            const sg = Math.sin(g), cg = Math.cos(g);
+            return [
+                cl * cp * cg + sl * sp * sg,
+                sl * cp * cg - cl * sp * sg,
+                cl * sp * cg + sl * cp * sg,
+                cl * cp * sg - sl * sp * cg
+            ];
+        }
+        static toAngles([a, b, c, d]) {
+            return [
+                Math.atan2(2 * (a * b + c * d), 1 - 2 * (b * b + c * c)) * 180 / Math.PI,
+                Math.asin(Math.max(-1, Math.min(1, 2 * (a * c - d * b)))) * 180 / Math.PI,
+                Math.atan2(2 * (a * d + b * c), 1 - 2 * (c * c + d * d)) * 180 / Math.PI
+            ];
+        }
+        static interpolateAngles(a, b) {
+            const i = Versor.interpolate(Versor.fromAngles(a), Versor.fromAngles(b));
+            return t => Versor.toAngles(i(t));
+        }
+        static interpolateLinear([a1, b1, c1, d1], [a2, b2, c2, d2]) {
+            a2 -= a1, b2 -= b1, c2 -= c1, d2 -= d1;
+            const x = new Array(4);
+            return t => {
+                const l = Math.hypot(x[0] = a1 + a2 * t, x[1] = b1 + b2 * t, x[2] = c1 + c2 * t, x[3] = d1 + d2 * t);
+                x[0] /= l, x[1] /= l, x[2] /= l, x[3] /= l;
+                return x;
+            };
+        }
+        static interpolate([a1, b1, c1, d1], [a2, b2, c2, d2]) {
+            let dot = a1 * a2 + b1 * b2 + c1 * c2 + d1 * d2;
+            if (dot < 0) a2 = -a2, b2 = -b2, c2 = -c2, d2 = -d2, dot = -dot;
+            if (dot > 0.9995) return Versor.interpolateLinear([a1, b1, c1, d1], [a2, b2, c2, d2]);
+            const theta0 = Math.acos(Math.max(-1, Math.min(1, dot)));
+            const x = new Array(4);
+            const l = Math.hypot(a2 -= a1 * dot, b2 -= b1 * dot, c2 -= c1 * dot, d2 -= d1 * dot);
+            a2 /= l, b2 /= l, c2 /= l, d2 /= l;
+            return t => {
+                const theta = theta0 * t;
+                const s = Math.sin(theta);
+                const c = Math.cos(theta);
+                x[0] = a1 * c + a2 * s;
+                x[1] = b1 * c + b2 * s;
+                x[2] = c1 * c + c2 * s;
+                x[3] = d1 * c + d2 * s;
+                return x;
+            };
+        }
+    }
+
+</script>
+<header id="head" class="py-3" style="background: #272636;height: 11%;">
+
+    <div class="d-flex justify-content-center">
+        <ul class="nav nav-pills" data-bs-theme="dark">
+            <li class="nav-item"><a href="/todo" class="nav-link">Todo list️</a></li>
+            <li class="nav-item"><a href="/todo/weather" class="nav-link active" aria-current="page">Weather</a></li>
+            <li class="nav-item"><a href="/todo/calc" class="nav-link">Calculator</a></li>
+
+        </ul>
+
+    </div>
+
+</header>
+<body style="background: #1D1D25;">
+
+<div class="position-fixed start-50" style="width:50%;">
+    <div class="position-sticky card text-center my-5 translate-middle-x" data-bs-theme="dark" style="width:100%;background: #272636;">
+        <div class="d-flex">
+            <div class="border border-3" style="width: 500px;">
+                <h1 id="name" style="text-align: center; color: whitesmoke;"></h1>
+                <hr data-bs-theme="light"  class="position-sticky border border-3"/>
+                <div  id="container"></div>
+            </div>
+            <div class="border border-3" style="width: 500px;">
+                <h1 id="city" style="text-align: center; color: whitesmoke;"></h1>
+                <hr data-bs-theme="light"  class="position-sticky border border-3"/>
+                <div style="margin-top: 25%;">
+                    <p id="temp" style="text-align: center; color: whitesmoke;font-size: 500%;"></p>
+                    <p id="cond" style="text-align: center; color: whitesmoke;font-size: 200%;"></p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <script>
+                fetch('https://ipapi.co/json/')
+                    .then(d => d.json())
+                    .then(d => getCity(d));
+                function getCity(data){
+                    let url = location.origin + "/todo/getw";
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json;charset=utf-8' },
+                        body: JSON.stringify({ "city": data.city, "country": data.country })
+                    })
+                        .then(response => response.json().then(value => {setStyle(value.condition,value.temp,data.city)}))
+
+                }
+                function setStyle(cond,temp,city){
+                    document.getElementById("city").innerText=city
+                    document.getElementById("cond").innerText=cond
+                    if(temp.includes("°C")){
+                        document.getElementById("temp").innerText=temp
+                    }else{
+                        document.getElementById("temp").innerText=temp+" °C"
+                    }
+
+                    if(cond.includes("Облачно") || cond.includes("облачность")) {
+                        document.getElementById("head").style = "background:url(/static/clouds.gif) bottom;background-size: 10%;"
+                    }
+                    if(cond.includes("Дождь") || cond.includes("дожди")) {
+                        document.getElementById("head").style = "background:url(/static/rain.gif) bottom;background-size: 10%;"
+                    }
+                    if(cond.includes("Ясно")) {
+                        document.getElementById("head").style = "background:url(/static/sun.gif) bottom;background-size: 10%;"
+                    }
+                }
+            </script>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
+{{ end }}
