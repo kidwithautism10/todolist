@@ -1,0 +1,216 @@
+{{ define "calc" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+</head>
+<script>
+    function calcDate(){
+        var date1 = new Date()
+        var date2 = new Date()
+        var finalDate = new Date()
+        date1.setFullYear(document.getElementById("year").value,document.getElementById("month").value,document.getElementById("day").value)
+        date1.setHours(document.getElementById("hour").value,document.getElementById("minute").value,document.getElementById("second").value)
+        date2.setFullYear(document.getElementById("year2").value,document.getElementById("month2").value,document.getElementById("day2").value)
+        date2.setHours(document.getElementById("hour2").value,document.getElementById("minute2").value,document.getElementById("second2").value)
+        console.log(date2.getMonth())
+        if(document.getElementById("select").value==="-"){
+            finalDate.setFullYear(date1.getFullYear()-date2.getFullYear(),date1.getMonth()-date2.getMonth(),date1.getDate()-date2.getDate())
+            finalDate.setHours(date1.getHours()-date2.getHours(),date1.getMinutes()-date2.getMinutes(),date1.getSeconds()-date2.getSeconds())
+            console.log(finalDate.toString())
+        }
+        if(document.getElementById("select").value==="+"){
+            finalDate.setFullYear(date1.getFullYear()+date2.getFullYear(),date1.getMonth()+date2.getMonth(),date1.getDate()+date2.getDate())
+            finalDate.setHours(date1.getHours()+date2.getHours(),date1.getMinutes()+date2.getMinutes(),date1.getSeconds()+date2.getSeconds())
+            console.log(finalDate.toString())
+        }
+        location.replace(location.origin+location.pathname+"?year="+finalDate.getFullYear().toString()+"&month="+finalDate.getMonth().toString()+"&day="+finalDate.getDate().toString()+"&hour="+finalDate.getHours().toString()+"&minute="+finalDate.getMinutes().toString()+"&seconds="+finalDate.getSeconds().toString())
+    }
+</script>
+<script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+    var date = new Date()
+    var params = window
+        .location
+        .search
+        .replace('?','')
+        .split('&')
+        .reduce(
+            function(p,e){
+                var a = e.split('=');
+                p[ decodeURIComponent(a[0])] = decodeURIComponent(a[1]);
+                return p;
+            },
+            {}
+        );
+    date.setFullYear(params["year"])
+    date.setMonth(params["month"]-1)
+    date.setDate(params["day"])
+    date.setHours(params["hour"])
+    date.setMinutes(params["minute"])
+    date.setSeconds(params["seconds"])
+    console.log(document.getElementById("select").value)
+    graph(date)
+
+
+    async function graph(date){
+        const width = 954
+        const height = 954
+        const radius = width / 1.67
+        const color = d3.scaleSequential([0, 2 * Math.PI], d3.interpolateRainbow)
+        const armRadius = radius/22
+        const dotRadius = armRadius-9
+
+        let fields = _fields(radius)
+
+        const svg = d3.create("svg")
+            .attr("viewBox", [0, 0, width, height])
+            .attr("text-anchor", "middle")
+            .style("display", "block")
+            .style("font", "500 14px var(--sans-serif)");
+
+        const field = svg.append("g")
+            .attr("transform", `translate(${width / 2},${height / 2})`)
+            .selectAll("g")
+            .data(fields)
+            .join("g");
+
+        field.append("circle")
+            .attr("fill", "none")
+            .attr("stroke", "#4B0082") //FFF8DC
+            .attr("stroke-width", 3)
+            .attr("r", d => d.radius);
+
+        const fieldTick = field.selectAll("g")
+            .data(d => {
+                const date = d.interval(new Date(2000, 0, 1));
+                d.range = d.subinterval.range(date, d.interval.offset(date, 1));
+                return d.range.map(t => ({time: t, field: d}));
+            })
+            .join("g")
+            .attr("class", "field-tick")
+            .attr("transform", (d, i) => {
+                const angle = i / d.field.range.length * 2 * Math.PI - Math.PI / 2;
+                return `translate(${Math.cos(angle) * d.field.radius},${Math.sin(angle) * d.field.radius})`;
+            });
+
+        const fieldCircle = fieldTick.append("circle")
+            .attr("r", dotRadius)
+            .attr("fill", "#000")
+            .style("color", (d, i) => color(i / d.field.range.length * 2 * Math.PI))
+            .style("transition", "fill 750ms ease-out");
+
+        fieldTick.append("text")
+            .attr("dy", "0.35em")
+            .attr("fill", "#181513")
+            .text(d => d.field.format(d.time).slice(0, 2));
+
+        const fieldFocus = field.append("circle")
+            .attr("r", dotRadius)
+            .attr("fill", "none")
+            .attr("stroke", "#BD33A4")
+            .attr("stroke-width", 5)
+            .attr("cy", d => -d.radius)
+            .style("transition", "transform 500ms ease");
+
+        if(date.toString() === "Invalid Date"){
+            update(Math.floor((Date.now()) / 1000) * 1000);
+        }else{
+            update(Math.floor((date) / 1000)*1000);
+        }
+
+
+        function update(then) {
+            for (const d of fields) {
+                const start = d.interval(then);
+                const index = d.subinterval.count(start, then);
+                d.cycle = (d.cycle || 0) + (index < d.index);
+                d.index = index;
+            }
+            fieldCircle.attr("fill", (d, i) => i === d.field.index ? "currentColor" : "#FAEBD7");
+            fieldFocus.attr("transform", d => `rotate(${(d.index / d.range.length + d.cycle) * 360})`);
+            if(date.toString() === "Invalid Date"){
+                field.append("text").attr("dy", "0.35em").attr("fill", "#FAEBD7").attr("font-weight", 500).attr("font-size",50).attr("vector-effect", "non-scaling-stroke").text(new Date().getFullYear());
+            }else{
+                field.append("text").attr("dy", "0.35em").attr("fill", "#FAEBD7").attr("font-weight", 500).attr("font-size",50).attr("vector-effect", "non-scaling-stroke").text(date.getFullYear());
+
+            }
+            container.append(svg.node())
+        }
+
+    }
+    function _fields(radius){return(
+        [
+            {radius: 0.2 * radius, interval: d3.timeYear,   subinterval: d3.timeMonth,  format: d3.timeFormat("%b")},
+            {radius: 0.3 * radius, interval: d3.timeMonth,  subinterval: d3.timeDay,    format: d3.timeFormat("%d")},
+            {radius: 0.4 * radius, interval: d3.timeWeek,   subinterval: d3.timeDay,    format: d3.timeFormat("%a")},
+            {radius: 0.6 * radius, interval: d3.timeDay,    subinterval: d3.timeHour,   format: d3.timeFormat("%H")},
+            {radius: 0.7 * radius, interval: d3.timeHour,   subinterval: d3.timeMinute, format: d3.timeFormat("%M")},
+            {radius: 0.8 * radius, interval: d3.timeMinute, subinterval: d3.timeSecond, format: d3.timeFormat("%S")}
+        ]
+    )}
+</script>
+<header class="py-3" style="background: #272636;height: 11%;">
+
+    <div class="d-flex justify-content-center">
+        <ul class="nav nav-pills" data-bs-theme="dark">
+            <li class="nav-item"><a href="/todo" class="nav-link">Todo list️</a></li>
+            <li class="nav-item"><a href="/todo/weather" class="nav-link" aria-current="page">Weather</a></li>
+            <li class="nav-item"><a href="/todo/calc" class="nav-link active">Calculator</a></li>
+
+        </ul>
+
+    </div>
+
+</header>
+<body style="background:url(/static/stars.gif);">
+    <div>
+        <div class="position-fixed end-50 top-50 card border border-2 text-center my-5 translate-middle-x" data-bs-theme="dark" style="width:25%;background: #272636;">
+            <div class="my-2">
+                <span>years/months/days/hours/minutes/seconds</span>
+            </div>
+            <div class="my-2">
+                <input class="mx-1" value="" id="year" style="width: 50px;"><input class="mx-1" id="month" style="width: 50px;"><input class="mx-1" id="day" style="width: 50px;"><input class="mx-1" id="hour" style="width: 50px;"><input class="mx-1" id="minute" style="width: 50px;"><input id="second" class="mx-1" style="width: 50px;">
+                <script>
+                    var date = new Date()
+                    document.getElementById("year").value=date.getFullYear()
+                    document.getElementById("month").value=date.getUTCMonth()+1
+                    document.getElementById("day").value=date.getDate()
+                    document.getElementById("hour").value=date.getHours()
+                    document.getElementById("minute").value=date.getMinutes()
+                    document.getElementById("second").value=date.getSeconds()
+                </script>
+            </div>
+            <div>
+                <select id="select" aria-label="Default select example" style="width: 50px;">
+                    <option value="+">+</option>
+                    <option value="-">-</option>
+                </select>
+            </div>
+            <div class="my-2">
+                <input class="mx-1" value="" id="year2" style="width: 50px;"><input class="mx-1" id="month2" style="width: 50px;"><input class="mx-1" id="day2" style="width: 50px;"><input class="mx-1" id="hour2" style="width: 50px;"><input class="mx-1" id="minute2" style="width: 50px;"><input id="second2" class="mx-1" style="width: 50px;">
+                <script>
+                    var date = new Date()
+                    document.getElementById("year2").value=0
+                    document.getElementById("month2").value=0
+                    document.getElementById("day2").value=0
+                    document.getElementById("hour2").value=0
+                    document.getElementById("minute2").value=0
+                    document.getElementById("second2").value=0
+                </script>
+            </div>
+            <div>
+                <button class="btn btn-outline-primary" onclick="calcDate()" style="margin-bottom: 10px;">calculate</button>
+            </div>
+    </div>
+    <div class="d-flex justify-content-end" data-bs-theme="dark">
+        <div class="border border-3" style="width: 44%;height: 100%; background: #1A162A;">
+            <div id="container"></div>
+        </div>
+    </div>
+
+</body>
+</html>
+{{ end }}

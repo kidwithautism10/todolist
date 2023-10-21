@@ -72,7 +72,19 @@ func (s *server) loggedRouter() chi.Router {
 	r.MethodFunc("GET", "/json", s.handleJSON())
 	r.Handle("/weather", s.handleWeather())
 	r.MethodFunc("POST", "/getw", s.handleGetWeather())
+	r.Handle("/calc", s.handleCalc())
 	return r
+}
+
+func (s *server) handleCalc() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		templateParser, err := template.ParseFiles("views/calc.html")
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+		}
+
+		templateParser.ExecuteTemplate(w, "calc", nil)
+	}
 }
 
 func (s *server) handleJSON() http.HandlerFunc {
@@ -109,7 +121,6 @@ func (s *server) handleGetWeather() http.HandlerFunc {
 			return
 		}
 		url := "https://ru.meteotrend.com/forecast/" + req.Country + "/" + req.City + "/"
-		fmt.Println(url)
 		res, err := http.Get(url)
 		if err != nil {
 			return
